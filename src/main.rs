@@ -3,7 +3,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 enum Cell {
     Open,
     Blocked,
@@ -23,11 +23,17 @@ impl Cell {
     }
 }
 
+struct Node {
+    x: i32,
+    y: i32,
+    cell: Cell,
+}
+
 #[derive(Debug)]
 struct Grid {
-    width: u32,
-    height: u32,
-    nodes: Vec<Vec<Cell>>,
+    width: i32,
+    height: i32,
+    cells: Vec<Vec<Cell>>,
 }
 
 impl Grid {
@@ -35,10 +41,10 @@ impl Grid {
         let mut lines = string.split('\n');
         if let Some(line) = lines.next() {
             let dimensions: Vec<_> = line.split(' ').map(|s|
-                s.parse::<u32>().expect("Invalid dimension")
+                s.parse::<i32>().expect("Invalid dimension")
             ).collect();
 
-            let nodes: Vec<Vec<_>> = lines
+            let cells: Vec<Vec<_>> = lines
                 .take(dimensions[1] as usize)
                 .map(|line|
                   line.chars().map(Cell::from).collect()
@@ -47,11 +53,29 @@ impl Grid {
             Grid {
                 width: dimensions[0],
                 height: dimensions[1],
-                nodes: nodes
+                cells: cells
             }
         } else {
             panic!("Empty file");
         }
+    }
+
+    fn expand(&self, node: Node) -> Vec<Node> {
+        let mut result = Vec::new();
+        for y in (node.y - 1)..(node.y + 2) {
+            if y >= 0 || y < self.height {
+                for x in (node.x - 1)..(node.x + 2) {
+                    if !(x == node.x && y == node.y) && x < 0 || x >= self.width {
+                        let cell = self.cells[y as usize][x as usize];
+                        match cell {
+                          Cell::Blocked => {},
+                          _ => result.push(Node { x: x, y: y, cell: cell })
+                        }
+                    }
+                }
+            }
+        }
+        result
     }
 }
 
