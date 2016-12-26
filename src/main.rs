@@ -23,10 +23,10 @@ impl Cell {
     }
 }
 
+#[derive(Debug)]
 struct Node {
     x: i32,
     y: i32,
-    cell: Cell,
 }
 
 #[derive(Debug)]
@@ -69,7 +69,7 @@ impl Grid {
                         let cell = self.cells[y as usize][x as usize];
                         match cell {
                           Cell::Blocked => {},
-                          _ => result.push(Node { x: x, y: y, cell: cell })
+                          _ => result.push(Node { x: x, y: y })
                         }
                     }
                 }
@@ -109,6 +109,9 @@ fn read_grid_file(path_str: &str) -> Result<Grid, &str> {
 }
 
 fn main() {
-    let grid = read_grid_file("map.txt");
-    println!("{:?}", grid.unwrap());
+    if let Ok(grid) = read_grid_file("map.txt") {
+        let neighbors = grid.expand(Node { x: 0, y: 0 });
+        println!("{:?}", neighbors);
+        println!("{:?}", grid);
+    }
 }
