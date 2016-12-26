@@ -55,20 +55,21 @@ impl Grid {
     }
 }
 
-
-fn main() {
+fn read_grid_file(path_str: &str) -> Result<Grid, &str> {
     // Create a path to the desired file
-    let path = Path::new("map.txt");
+    let path = Path::new(path_str);
     let display = path.display();
 
     // Open the path in read-only mode, returns `io::Result<File>`
     let mut file = match File::open(&path) {
         // The `description` method of `io::Error` returns a string that
         // describes the error
-        Err(why) => panic!(
-            "couldn't open {}: {}",
-            display, why.description()
-        ),
+        Err(why) => {
+            panic!(
+                "couldn't open {}: {}",
+                display, why.description()
+            )
+        },
         Ok(file) => file,
     };
 
@@ -79,12 +80,11 @@ fn main() {
             "couldn't read {}: {}",
             display, why.description()
         ),
-        Ok(_) => {
-            print!("{} contains:\n{}", display, s);
-            let map = Grid::from(&s);
-            println!("{:?}", map);
-        }
+        Ok(_) => Ok(Grid::from(&s))
     }
+}
 
-    // `file` goes out of scope, and the "hello.txt" file gets closed
+fn main() {
+    let grid = read_grid_file("map.txt");
+    println!("{:?}", grid.unwrap());
 }
