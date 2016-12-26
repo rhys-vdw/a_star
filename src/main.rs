@@ -4,20 +4,20 @@ use std::io::prelude::*;
 use std::path::Path;
 
 #[derive(Debug)]
-enum Node {
+enum Cell {
     Open,
     Blocked,
     Start,
     Goal
 }
 
-impl Node {
-    fn from(c: char) -> Node {
+impl Cell {
+    fn from(c: char) -> Cell {
         match c {
-            '.' => Node::Open,
-            '#' => Node::Blocked,
-            's' => Node::Start,
-            'g' => Node::Goal,
+            '.' => Cell::Open,
+            '#' => Cell::Blocked,
+            's' => Cell::Start,
+            'g' => Cell::Goal,
             _ => panic!("Unrecognized node: {}", c)
         }
     }
@@ -27,7 +27,7 @@ impl Node {
 struct Grid {
     width: u32,
     height: u32,
-    nodes: Vec<Vec<Node>>,
+    nodes: Vec<Vec<Cell>>,
 }
 
 impl Grid {
@@ -41,7 +41,7 @@ impl Grid {
             let nodes: Vec<Vec<_>> = lines
                 .take(dimensions[1] as usize)
                 .map(|line|
-                  line.chars().map(Node::from).collect()
+                  line.chars().map(Cell::from).collect()
                 ).collect();
 
             Grid {
