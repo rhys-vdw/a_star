@@ -7,6 +7,7 @@ use std::path::Path;
 use std::collections::BinaryHeap;
 use std::cmp::Ordering;
 use std::ops::Add;
+use std::rc::Rc;
 use revord::RevOrd;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -201,15 +202,8 @@ fn read_grid_file(path_str: &str) -> Result<Grid, &str> {
 struct State {
     cost: u32,
     coord: Coord,
+    parent: Option<Rc<State>>,
 }
-
-/*
-impl State {
-    fn new(from: Option<Rc<State>>, coord: Coord, cost: u32) -> State {
-        State { from: from, coord: coord, cost: cost }
-    }
-}
-*/
 
 impl Ord for State {
     fn cmp(&self, other: &Self) -> Ordering {
@@ -233,7 +227,7 @@ fn search(grid: Grid) -> Option<u32> {
     let mut closed: Vec<Coord> = Vec::new();
 
     // Add first state to open list.
-    open.push(RevOrd(State { coord: grid.start, cost: 0 }));
+    open.push(RevOrd(State { coord: grid.start, cost: 0, parent: None }));
 
     let mut count = 0u32;
 
@@ -244,11 +238,15 @@ fn search(grid: Grid) -> Option<u32> {
         }
 
         let neighbors = grid.expand(state.coord);
+        let cost = state.cost + 1;
+        let parent = Some(Rc::new(state));
+
         for coord in neighbors {
             if !closed.contains(&coord) {
                 let state = State {
                     coord: coord,
-                    cost: state.cost + 1,
+                    cost: cost,
+                    parent: parent.clone(),
                 };
                 println!("pushing neighbor: {:?}", state);
                 open.push(RevOrd(state));
