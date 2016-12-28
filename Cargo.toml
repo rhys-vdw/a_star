@@ -4,3 +4,4 @@ version = "0.1.0"
 authors = ["Rhys van der Waerden <rhys.vdw@gmail.com>"]
 
 [dependencies]
+revord = "0.0.2"
