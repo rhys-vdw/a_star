@@ -86,8 +86,12 @@ impl Grid {
                 tiles.push(line.chars().enumerate().map(|(x, symbol)| {
                     let tile = Tile::from(symbol);
                     match tile {
-                        Tile::Start => { start = Some(Coord { x: x as i32, y: y as i32 }) },
-                        Tile::Goal => { goal = Some(Coord { x: x as i32, y: y as i32 }) },
+                        Tile::Start => {
+                            start = Some(Coord { x: x as i32, y: y as i32 })
+                        },
+                        Tile::Goal => {
+                            goal = Some(Coord { x: x as i32, y: y as i32 })
+                        },
                         _ => {}
                     }
                     tile
@@ -217,11 +221,40 @@ impl PartialOrd for State {
     }
 }
 
+fn backtrace(state: &State) -> Vec<Coord> {
+    let mut result = Vec::new();
+    let mut state = state;
+    while let Some(ref next) = state.parent {
+        result.push(next.coord);
+        state = next;
+    }
+    result.reverse();
+    result
+}
+
+/*
+struct Backtrace {
+    curr: Option<Rc<State>>,
+}
+
+impl Iterator for Backtrace {
+    type Item = Rc<State>;
+    fn next(&mut self) -> Option<Rc<State>> {
+        let result = self.curr.clone();
+        self.curr = match self.curr {
+            None => None,
+            Some(ref state) => state.parent.clone(),
+        };
+        result
+    }
+}
+*/
+
 fn distance(from: &Coord, to: &Coord) -> i32 {
     (to.y - from.y).abs() + (to.y - from.y).abs()
 }
 
-fn search(grid: Grid) -> Option<u32> {
+fn search(grid: Grid) -> Option<Vec<Coord>> {
     // Create open and closed lists.
     let mut open: BinaryHeap<RevOrd<State>> = BinaryHeap::new();
     let mut closed: Vec<Coord> = Vec::new();
@@ -229,12 +262,10 @@ fn search(grid: Grid) -> Option<u32> {
     // Add first state to open list.
     open.push(RevOrd(State { coord: grid.start, cost: 0, parent: None }));
 
-    let mut count = 0u32;
-
     // Keep grabbing the lowest cost state and expanding it.
     while let Some(RevOrd(state)) = open.pop() {
         if state.coord == grid.goal {
-            return Some(state.cost);
+            return Some(backtrace(&state));
         }
 
         let neighbors = grid.expand(state.coord);
@@ -248,7 +279,6 @@ fn search(grid: Grid) -> Option<u32> {
                     cost: cost,
                     parent: parent.clone(),
                 };
-                println!("pushing neighbor: {:?}", state);
                 open.push(RevOrd(state));
                 closed.push(coord);
             }
