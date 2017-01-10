@@ -28,6 +28,15 @@ impl Tile {
             _ => panic!("Unrecognized coord: {}", c)
         }
     }
+
+    fn to_char(&self) -> char {
+        match *self {
+            Tile::Open    => '_',
+            Tile::Blocked => '#',
+            Tile::Start   => 's',
+            Tile::Goal    => 'g',
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -108,6 +117,14 @@ impl Grid {
         } else {
             panic!("Empty file");
         }
+    }
+
+    fn to_string(&self) -> String {
+        self.tiles.iter().map(|row|
+             row.iter()
+                 .map(|tile| tile.to_char())
+                 .collect::<String>()
+         ).collect::<Vec<_>>().join("\n")
     }
 
     fn tile_at(&self, coord: &Coord) -> Option<Tile> {
@@ -254,7 +271,7 @@ fn distance(from: &Coord, to: &Coord) -> i32 {
     (to.y - from.y).abs() + (to.y - from.y).abs()
 }
 
-fn search(grid: Grid) -> Option<Vec<Coord>> {
+fn search(grid: &Grid) -> Result<Vec<Coord>, &'static str> {
     // Create open and closed lists.
     let mut open: BinaryHeap<RevOrd<State>> = BinaryHeap::new();
     let mut closed: Vec<Coord> = Vec::new();
@@ -265,7 +282,7 @@ fn search(grid: Grid) -> Option<Vec<Coord>> {
     // Keep grabbing the lowest cost state and expanding it.
     while let Some(RevOrd(state)) = open.pop() {
         if state.coord == grid.goal {
-            return Some(backtrace(&state));
+            return Ok(backtrace(&state));
         }
 
         let neighbors = grid.expand(state.coord);
@@ -284,15 +301,28 @@ fn search(grid: Grid) -> Option<Vec<Coord>> {
             }
         }
     }
-    None
+    Err("goal not found")
 }
+
+fn solution_to_string(grid: &Grid, path: Vec<Coord>) -> String {
+    grid.tiles.iter().enumerate().map(|(y, row)|
+         row.iter()
+             .enumerate()
+             .map(|(x, tile)|
+                if path.contains(&Coord::new(x as i32, y as i32)) { '•' } else { tile.to_char() }
+             )
+             .collect::<String>()
+     ).collect::<Vec<_>>().join("\n")
+}
+
 
 fn main() {
     match read_grid_file("map.txt") {
         Ok(grid) => {
+            println!("{}", grid.to_string());
             println!("from: {:?} -> to: {:?}", grid.start, grid.goal);
-            if let Some(cost) = search(grid) {
-                println!("goal found at {:?}", cost);
+            if let Ok(solution) = search(&grid) {
+                println!("goal found!\n{}", solution_to_string(&grid, solution));
             } else {
                 println!("couldn't find goal");
             }
