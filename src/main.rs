@@ -49,6 +49,10 @@ impl Coord {
     fn new(x: i32, y:i32) -> Coord {
         Coord { x: x, y: y }
     }
+
+    fn distance(from: &Coord, to: &Coord) -> i32 {
+        (to.y - from.y).abs() + (to.y - from.y).abs()
+    }
 }
 
 impl Add for Coord {
@@ -222,13 +226,20 @@ fn read_grid_file(path_str: &str) -> Result<Grid, &str> {
 #[derive(Debug, PartialEq, Eq)]
 struct State {
     cost: u32,
+    heuristic: u32,
     coord: Coord,
     parent: Option<Rc<State>>,
 }
 
+impl State {
+    fn estimated_cost(&self) -> u32 {
+        self.cost + self.heuristic
+    }
+}
+
 impl Ord for State {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.cost.cmp(&other.cost)
+        self.estimated_cost().cmp(&other.estimated_cost())
     }
 }
 
@@ -267,17 +278,18 @@ impl Iterator for Backtrace {
 }
 */
 
-fn distance(from: &Coord, to: &Coord) -> i32 {
-    (to.y - from.y).abs() + (to.y - from.y).abs()
-}
-
 fn search(grid: &Grid) -> Result<Vec<Coord>, &'static str> {
     // Create open and closed lists.
     let mut open: BinaryHeap<RevOrd<State>> = BinaryHeap::new();
     let mut closed: Vec<Coord> = Vec::new();
 
     // Add first state to open list.
-    open.push(RevOrd(State { coord: grid.start, cost: 0, parent: None }));
+    open.push(RevOrd(State {
+        coord: grid.start,
+        cost: 0,
+        heuristic: 0,
+        parent: None
+    }));
 
     // Keep grabbing the lowest cost state and expanding it.
     while let Some(RevOrd(state)) = open.pop() {
@@ -294,6 +306,7 @@ fn search(grid: &Grid) -> Result<Vec<Coord>, &'static str> {
                 let state = State {
                     coord: coord,
                     cost: cost,
+                    heuristic: Coord::distance(&coord, &grid.goal) as u32,
                     parent: parent.clone(),
                 };
                 open.push(RevOrd(state));
