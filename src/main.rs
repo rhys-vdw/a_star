@@ -19,7 +19,8 @@ enum Tile {
     Open,
     Blocked,
     Start,
-    Goal
+    Goal,
+    Path
 }
 
 impl Tile {
@@ -38,6 +39,17 @@ impl Tile {
             &Tile::Blocked => '#',
             &Tile::Start   => 's',
             &Tile::Goal    => 'g',
+            &Tile::Path    => '•',
+        }
+    }
+
+    fn to_color_string(&self) -> String {
+        match self {
+            &Tile::Open    => " ".to_string(),
+            &Tile::Blocked => Blue.paint("#").to_string(),
+            &Tile::Start   => Red.paint("s").to_string(),
+            &Tile::Goal    => Green.paint("✓").to_string(),
+            &Tile::Path    => Red.paint("•").to_string(),
         }
     }
 }
@@ -132,10 +144,27 @@ impl Grid {
         }
     }
 
+    fn set_path(&mut self, path: &[Coord]) {
+        for coord in path {
+            let tile = self.tiles[coord.y as usize][coord.x as usize];
+            if tile != Tile::Start && tile != Tile::Goal {
+                self.tiles[coord.y as usize][coord.x as usize] = Tile::Path;
+            }
+        }
+    }
+
     fn to_string(&self) -> String {
         self.tiles.iter().map(|row|
              row.iter()
                  .map(|tile| tile.to_char())
+                 .collect::<String>()
+         ).collect::<Vec<_>>().join("\n")
+    }
+
+    fn to_color_string(&self) -> String {
+        self.tiles.iter().map(|row|
+             row.iter()
+                 .map(|tile| tile.to_color_string())
                  .collect::<String>()
          ).collect::<Vec<_>>().join("\n")
     }
@@ -334,31 +363,14 @@ fn search(grid: &Grid) -> Result<Vec<Coord>, &'static str> {
     Err("goal not found")
 }
 
-fn solution_to_string(grid: &Grid, path: Vec<Coord>) -> String {
-    grid.tiles.iter().enumerate().map(|(y, row)|
-         row.iter()
-             .enumerate()
-             .map(|(x, tile)|
-                if path.contains(&Coord::new(x as i32, y as i32)) {
-                    match tile {
-                        &Tile::Start => Blue.paint("s"),
-                        &Tile::Goal => Green.paint("✓"),
-                        _ => Red.paint("•")
-                    }.to_string()
-                } else {
-                    tile.to_char().to_string()
-                }
-             )
-             .collect::<String>()
-     ).collect::<Vec<_>>().join("\n")
-}
-
 fn main() {
-    match read_grid_file("maze100.txt") {
+    match read_grid_file("map2.txt") {
         Ok(grid) => {
             println!("{}", grid.to_string());
             if let Ok(solution) = search(&grid) {
-                println!("solution of {} steps found! \n{}", solution.len(), solution_to_string(&grid, solution));
+                let mut grid = grid;
+                grid.set_path(&solution);
+                println!("solution of {} steps found! \n{}", solution.len(), grid.to_color_string());
             } else {
                 println!("couldn't find goal");
             }
