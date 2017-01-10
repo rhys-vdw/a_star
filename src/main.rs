@@ -1,4 +1,5 @@
 extern crate revord;
+extern crate ansi_term;
 
 use std::error::Error;
 use std::fs::File;
@@ -9,6 +10,9 @@ use std::cmp::Ordering;
 use std::ops::Add;
 use std::rc::Rc;
 use revord::RevOrd;
+use ansi_term::Colour::Red;
+use ansi_term::Colour::Green;
+use ansi_term::Colour::Blue;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Tile {
@@ -21,20 +25,19 @@ enum Tile {
 impl Tile {
     fn from(c: char) -> Tile {
         match c {
-            '.' => Tile::Open,
             '#' => Tile::Blocked,
             's' => Tile::Start,
             'g' => Tile::Goal,
-            _ => panic!("Unrecognized coord: {}", c)
+            _ => Tile::Open,
         }
     }
 
     fn to_char(&self) -> char {
-        match *self {
-            Tile::Open    => '_',
-            Tile::Blocked => '#',
-            Tile::Start   => 's',
-            Tile::Goal    => 'g',
+        match self {
+            &Tile::Open    => ' ',
+            &Tile::Blocked => '#',
+            &Tile::Start   => 's',
+            &Tile::Goal    => 'g',
         }
     }
 }
@@ -50,8 +53,8 @@ impl Coord {
         Coord { x: x, y: y }
     }
 
-    fn distance(from: &Coord, to: &Coord) -> i32 {
-        (to.y - from.y).abs() + (to.y - from.y).abs()
+    fn distance(from: &Coord, to: &Coord) -> u32 {
+        ((to.y - from.y).abs() + (to.y - from.y).abs()) as u32
     }
 }
 
@@ -103,6 +106,12 @@ impl Grid {
                             start = Some(Coord { x: x as i32, y: y as i32 })
                         },
                         Tile::Goal => {
+                            if let Some(prev) = goal {
+                                panic!(
+                                    "Found goal at {:?}, but goal was already found at {:?}",
+                                    Coord::new(x as i32, y as i32), prev
+                                );
+                            }
                             goal = Some(Coord { x: x as i32, y: y as i32 })
                         },
                         _ => {}
@@ -250,7 +259,7 @@ impl PartialOrd for State {
 }
 
 fn backtrace(state: &State) -> Vec<Coord> {
-    let mut result = Vec::new();
+    let mut result = vec![state.coord];
     let mut state = state;
     while let Some(ref next) = state.parent {
         result.push(next.coord);
@@ -291,9 +300,17 @@ fn search(grid: &Grid) -> Result<Vec<Coord>, &'static str> {
         parent: None
     }));
 
+    let mut steps = 0u32;
+
     // Keep grabbing the lowest cost state and expanding it.
     while let Some(RevOrd(state)) = open.pop() {
+
+        //println!("{:?}: {:?} popping {:?}", steps, open.len(), state.coord);
+        steps += 1;
+
+        // Goal has been found.
         if state.coord == grid.goal {
+            println!("found in {:?} steps", steps);
             return Ok(backtrace(&state));
         }
 
@@ -306,7 +323,7 @@ fn search(grid: &Grid) -> Result<Vec<Coord>, &'static str> {
                 let state = State {
                     coord: coord,
                     cost: cost,
-                    heuristic: Coord::distance(&coord, &grid.goal) as u32,
+                    heuristic: Coord::distance(&coord, &grid.goal),
                     parent: parent.clone(),
                 };
                 open.push(RevOrd(state));
@@ -322,20 +339,26 @@ fn solution_to_string(grid: &Grid, path: Vec<Coord>) -> String {
          row.iter()
              .enumerate()
              .map(|(x, tile)|
-                if path.contains(&Coord::new(x as i32, y as i32)) { '•' } else { tile.to_char() }
+                if path.contains(&Coord::new(x as i32, y as i32)) {
+                    match tile {
+                        &Tile::Start => Blue.paint("s"),
+                        &Tile::Goal => Green.paint("✓"),
+                        _ => Red.paint("•")
+                    }.to_string()
+                } else {
+                    tile.to_char().to_string()
+                }
              )
              .collect::<String>()
      ).collect::<Vec<_>>().join("\n")
 }
 
-
 fn main() {
-    match read_grid_file("map.txt") {
+    match read_grid_file("maze100.txt") {
         Ok(grid) => {
             println!("{}", grid.to_string());
-            println!("from: {:?} -> to: {:?}", grid.start, grid.goal);
             if let Ok(solution) = search(&grid) {
-                println!("goal found!\n{}", solution_to_string(&grid, solution));
+                println!("solution of {} steps found! \n{}", solution.len(), solution_to_string(&grid, solution));
             } else {
                 println!("couldn't find goal");
             }
