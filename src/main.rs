@@ -80,6 +80,7 @@ impl Add for Coord {
         }
     }
 }
+
 #[test]
 fn coord_eq_test() {
     let coords = vec![Coord::new(1, 1)];
@@ -120,7 +121,7 @@ impl Grid {
                         Tile::Goal => {
                             if let Some(prev) = goal {
                                 panic!(
-                                    "Found goal at {:?}, but goal was already found at {:?}",
+                                    "Goal specified at {:?}, but goal was already specified at {:?}",
                                     Coord::new(x as i32, y as i32), prev
                                 );
                             }
@@ -133,8 +134,8 @@ impl Grid {
             }
 
             Grid {
-                start: start.expect("Start not found!"),
-                goal: goal.expect("Goal not found!"),
+                start: start.expect("Start not specified!"),
+                goal: goal.expect("Goal not specified!"),
                 width: dimensions[0],
                 height: dimensions[1],
                 tiles: tiles
