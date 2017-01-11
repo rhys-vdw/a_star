@@ -1,6 +1,7 @@
 mod grid;
 mod tile;
 mod coord;
+mod state;
 
 extern crate revord;
 extern crate ansi_term;
@@ -10,12 +11,12 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::collections::BinaryHeap;
-use std::cmp::Ordering;
-use std::rc::Rc;
 use revord::RevOrd;
+use std::rc::Rc;
 
 use grid::Grid;
 use coord::Coord;
+use state::State;
 
 fn read_grid_file(path_str: &str) -> Result<Grid, &str> {
     // Create a path to the desired file
@@ -43,43 +44,6 @@ fn read_grid_file(path_str: &str) -> Result<Grid, &str> {
             display, why.description()
         ),
         Ok(_) => Ok(Grid::from(&s))
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-struct State {
-    cost: u32,
-    heuristic: u32,
-    coord: Coord,
-    parent: Option<Rc<State>>,
-}
-
-impl State {
-    fn estimated_cost(&self) -> u32 {
-        self.cost + self.heuristic
-    }
-
-    fn backtrace(&self) -> Vec<Coord> {
-        let mut result = vec![self.coord];
-        let mut state = self;
-        while let Some(ref next) = state.parent {
-            result.push(next.coord);
-            state = next;
-        }
-        result.reverse();
-        result
-    }
-}
-
-impl Ord for State {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.estimated_cost().cmp(&other.estimated_cost())
-    }
-}
-
-impl PartialOrd for State {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(&other))
     }
 }
 
@@ -142,6 +106,6 @@ fn main() {
                 println!("couldn't find goal");
             }
         },
-        Err(err) => println!("Failed to read map: {:?}", err)
+        Err(err) => println!("Failed to read map: {}", err)
     }
 }
