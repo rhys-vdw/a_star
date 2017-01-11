@@ -27,12 +27,10 @@ fn read_grid_file(path_str: &str) -> Result<Grid, &str> {
     let mut file = match File::open(&path) {
         // The `description` method of `io::Error` returns a string that
         // describes the error
-        Err(why) => {
-            panic!(
-                "couldn't open {}: {}",
-                display, why.description()
-            )
-        },
+        Err(why) => panic!(
+            "couldn't open {}: {}",
+            display, why.description()
+        ),
         Ok(file) => file,
     };
 
