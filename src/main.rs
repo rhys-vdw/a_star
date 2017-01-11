@@ -13,12 +13,13 @@ use std::path::Path;
 use std::collections::BinaryHeap;
 use revord::RevOrd;
 use std::rc::Rc;
+use std::env;
 
 use grid::Grid;
 use coord::Coord;
 use state::State;
 
-fn read_grid_file(path_str: &str) -> Result<Grid, &str> {
+fn read_grid_file(path_str: &str) -> Result<Grid, String> {
     // Create a path to the desired file
     let path = Path::new(path_str);
     let display = path.display();
@@ -27,20 +28,18 @@ fn read_grid_file(path_str: &str) -> Result<Grid, &str> {
     let mut file = match File::open(&path) {
         // The `description` method of `io::Error` returns a string that
         // describes the error
-        Err(why) => panic!(
-            "couldn't open {}: {}",
-            display, why.description()
-        ),
+        Err(why) => return Err(format!(
+            "Couldn't open `{}`: {}", display, why.description()
+        )),
         Ok(file) => file,
     };
 
     // Read the file contents into a string, returns `io::Result<i32>`
     let mut s = String::new();
     match file.read_to_string(&mut s) {
-        Err(why) => panic!(
-            "couldn't read {}: {}",
-            display, why.description()
-        ),
+        Err(why) => return Err(format!(
+            "Couldn't read `{}`: {}", display, why.description()
+        )),
         Ok(_) => Ok(Grid::from(&s))
     }
 }
@@ -92,18 +91,30 @@ fn search(grid: &Grid) -> Result<Vec<Coord>, &'static str> {
     Err("goal not found")
 }
 
-fn main() {
-    match read_grid_file("map2.txt") {
-        Ok(grid) => {
-            println!("{}", grid.to_string());
-            if let Ok(solution) = search(&grid) {
-                let mut grid = grid;
-                grid.set_path(&solution);
-                println!("solution of {} steps found! \n{}", solution.len(), grid.to_color_string());
-            } else {
-                println!("couldn't find goal");
-            }
+fn run_search(grid: &mut Grid) {
+    println!("Searching...");
+    match search(&grid) {
+        Ok(solution) => {
+            grid.set_path(&solution);
+            println!(
+                "...Solution of {} steps found! \n{}",
+                solution.len(), grid.to_color_string()
+            );
         },
-        Err(err) => println!("Failed to read map: {}", err)
+        Err(why) => println!("...{}", why)
+    }
+}
+
+fn main() {
+    if let Some(file_name) = env::args().nth(1) {
+        match read_grid_file(&file_name) {
+            Ok(mut grid) => {
+                println!("Successfully loaded `{}`", file_name);
+                run_search(&mut grid)
+            },
+            Err(err) => println!("{}", err)
+        }
+    } else {
+        println!("Usage: map <filename>");
     }
 }

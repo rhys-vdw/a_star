@@ -68,6 +68,7 @@ impl Grid {
         }
     }
 
+    #[allow(dead_code)]
     pub fn to_string(&self) -> String {
         self.tiles.iter().map(|row|
              row.iter()
