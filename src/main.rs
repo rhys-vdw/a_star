@@ -1,7 +1,7 @@
 mod grid;
 mod tile;
 mod coord;
-mod state;
+mod search;
 
 extern crate revord;
 extern crate ansi_term;
@@ -10,15 +10,10 @@ use std::error::Error;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use std::collections::BinaryHeap;
-use std::collections::HashSet;
-use revord::RevOrd;
-use std::rc::Rc;
 use std::env;
+use search::SearchResult;
 
 use grid::Grid;
-use coord::Coord;
-use state::State;
 
 fn read_grid_file(path_str: &str) -> Result<Grid, String> {
     // Create a path to the desired file
@@ -45,64 +40,25 @@ fn read_grid_file(path_str: &str) -> Result<Grid, String> {
     }
 }
 
-fn search(grid: &Grid) -> Result<Vec<Coord>, &'static str> {
-    // Create open and closed lists.
-    let mut open: BinaryHeap<RevOrd<State>> = BinaryHeap::new();
-    let mut closed = HashSet::new();
-
-    // Add first state to open list.
-    open.push(RevOrd(State {
-        coord: grid.start,
-        cost: 0,
-        heuristic: 0,
-        parent: None
-    }));
-
-    let mut steps = 0u32;
-
-    // Keep grabbing the lowest cost state and expanding it.
-    while let Some(RevOrd(state)) = open.pop() {
-
-        //println!("{:?}: {:?} popping {:?}", steps, open.len(), state.coord);
-        steps += 1;
-
-        // Goal has been found.
-        if state.coord == grid.goal {
-            println!("found in {:?} steps", steps);
-            return Ok(state.backtrace());
-        }
-
-        let neighbors = grid.expand(state.coord);
-        let cost = state.cost + 1;
-        let parent = Some(Rc::new(state));
-
-        for coord in neighbors {
-            if !closed.contains(&coord) {
-                let state = State {
-                    coord: coord,
-                    cost: cost,
-                    heuristic: Coord::distance(&coord, &grid.goal),
-                    parent: parent.clone(),
-                };
-                open.push(RevOrd(state));
-                closed.insert(coord);
-            }
-        }
-    }
-    Err("goal not found")
-}
-
 fn run_search(grid: &mut Grid) {
     println!("Searching...");
-    match search(&grid) {
-        Ok(solution) => {
-            grid.set_path(&solution);
+    match search::search(&*grid) {
+        Some(SearchResult { path, cost, expansion_count }) => {
+            let path : Vec<_> = path.iter().map(|v| {
+                *v.clone()
+            }).collect();
+            grid.set_path(&path);
             println!(
-                "...Solution of {} steps found! \n{}",
-                solution.len(), grid.to_color_string()
+                "...Solution found!\n\
+                {}\n\
+                cost: {}\n\
+                expansions: {}\n",
+                grid.to_color_string(),
+                cost,
+                expansion_count
             );
         },
-        Err(why) => println!("...{}", why)
+        None => println!("Goal not found")
     }
 }
 

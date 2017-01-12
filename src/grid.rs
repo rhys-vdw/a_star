@@ -1,3 +1,4 @@
+use search::Space;
 use coord::Coord;
 use tile::Tile;
 
@@ -14,6 +15,48 @@ fn parse_integers(string: &str) -> Vec<i32> {
     string.split(' ').map(|s|
         s.parse().expect("Invalid dimension")
     ).collect()
+}
+
+impl Space for Grid {
+    type T = Coord;
+
+    fn start(&self) -> Coord {
+        self.start
+    }
+
+    fn is_goal(&self, state: &Coord) -> bool {
+        *state == self.goal
+    }
+
+    fn distance(&self, from: &Coord, to: &Coord) -> u32 {
+        Coord::distance(from, to)
+    }
+
+    fn heuristic(&self, from: &Coord) -> u32 {
+        self.distance(from, &self.goal)
+    }
+
+    fn expand(&self, coord: &Coord) -> Vec<Coord> {
+        let offsets = [
+            // Up
+            Coord::new(0, -1),
+            // Left
+            Coord::new(-1, 0),
+            // Right
+            Coord::new(1, 0),
+            // Down
+            Coord::new(0, 1),
+        ];
+
+        offsets.iter().fold(Vec::new(), |mut neighbors, offset| {
+            let neighbor_coord = *coord + *offset;
+            match self.tile_at(&neighbor_coord) {
+                None | Some(Tile::Blocked) => {},
+                _ => neighbors.push(neighbor_coord),
+            }
+            neighbors
+        })
+    }
 }
 
 impl Grid {
@@ -100,27 +143,6 @@ impl Grid {
             coord.y < self.height
     }
 
-    pub fn expand(&self, coord: Coord) -> Vec<Coord> {
-        let offsets = [
-            // Up
-            Coord::new(0, -1),
-            // Left
-            Coord::new(-1, 0),
-            // Right
-            Coord::new(1, 0),
-            // Down
-            Coord::new(0, 1),
-        ];
-
-        offsets.iter().fold(Vec::new(), |mut neighbors, offset| {
-            let neighbor_coord = coord + *offset;
-            match self.tile_at(&neighbor_coord) {
-                None | Some(Tile::Blocked) => {},
-                _ => neighbors.push(neighbor_coord),
-            }
-            neighbors
-        })
-    }
 }
 
 #[test]
