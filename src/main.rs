@@ -11,6 +11,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use std::collections::BinaryHeap;
+use std::collections::HashSet;
 use revord::RevOrd;
 use std::rc::Rc;
 use std::env;
@@ -47,7 +48,7 @@ fn read_grid_file(path_str: &str) -> Result<Grid, String> {
 fn search(grid: &Grid) -> Result<Vec<Coord>, &'static str> {
     // Create open and closed lists.
     let mut open: BinaryHeap<RevOrd<State>> = BinaryHeap::new();
-    let mut closed: Vec<Coord> = Vec::new();
+    let mut closed = HashSet::new();
 
     // Add first state to open list.
     open.push(RevOrd(State {
@@ -84,7 +85,7 @@ fn search(grid: &Grid) -> Result<Vec<Coord>, &'static str> {
                     parent: parent.clone(),
                 };
                 open.push(RevOrd(state));
-                closed.push(coord);
+                closed.insert(coord);
             }
         }
     }

@@ -1,6 +1,6 @@
 use std::ops::Add;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct Coord {
     pub x: i32,
     pub y: i32,
